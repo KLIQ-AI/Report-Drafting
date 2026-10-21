@@ -6,12 +6,23 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const list = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
 const numOrNull = (v) => (v === "" || v == null ? null : Number(v));
 
+function apiKey() {
+  try { return localStorage.getItem("sr_api_key") || ""; } catch { return ""; }
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-API-Key": apiKey() },
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
+  if (res.status === 401) {
+    const key = prompt("API key for this Signal Radar server:");
+    if (key) {
+      try { localStorage.setItem("sr_api_key", key); } catch {}
+      return api(path, opts);
+    }
+  }
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}));
     throw new Error(typeof detail.detail === "string" ? detail.detail : `Request failed (${res.status})`);
@@ -90,7 +101,9 @@ async function loadLeads() {
   sel.value = current;
 
   const q = leadQuery();
-  $("#btn-export").href = `/api/leads.csv${q ? "?" + q : ""}`;
+  const csvQ = new URLSearchParams(q);
+  if (apiKey()) csvQ.set("api_key", apiKey());
+  $("#btn-export").href = `/api/leads.csv?${csvQ}`;
   const leads = await api(`/api/leads${q ? "?" + q : ""}`);
   $("#lead-empty").hidden = leads.length > 0;
   $("#lead-rows").innerHTML = leads.map((l) => `

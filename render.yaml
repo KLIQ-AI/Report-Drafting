@@ -1,0 +1,26 @@
+# Render Blueprint: one-click deploy of the Signal Radar backend.
+# Render dashboard -> New -> Blueprint -> pick this repo/branch.
+services:
+  - type: web
+    name: signal-radar-api
+    runtime: python
+    rootDir: signal-radar
+    plan: starter            # persistent disks need a paid plan (~$7/mo)
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:create_app --factory --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    disk:
+      name: signal-radar-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SIGNAL_RADAR_DB
+        value: /var/data/signal_radar.db
+      - key: API_KEY
+        generateValue: true  # copy it from the Environment tab into the Lovable app
+      - key: LINKEDIN_PROVIDER
+        value: mock
+      - key: ANTHROPIC_API_KEY
+        sync: false          # optional: set in the dashboard to turn on Claude scoring

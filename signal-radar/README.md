@@ -43,6 +43,18 @@ To turn on AI scoring, set `ANTHROPIC_API_KEY` (model via `SCORING_MODEL`, defau
 pytest -q   # tests
 ```
 
+## Hosting (backend on Render, UI on Lovable)
+
+1. Render dashboard -> **New -> Blueprint** -> select this repo and branch. It reads
+   `render.yaml` at the repo root (starter plan + 1 GB disk for the SQLite file).
+2. Once it's live, copy the service URL (`https://signal-radar-api-xxxx.onrender.com`)
+   and the generated `API_KEY` from the service's **Environment** tab.
+3. Open the Lovable app, go to **Settings**, and paste both in. Done.
+
+The API only answers requests carrying the key, and browsers may only call it from
+Lovable domains (`CORS_ORIGIN_REGEX`). A `Dockerfile` is included if you'd rather use
+Railway or Fly.io: mount a volume at `/data` and set `API_KEY`.
+
 ## Going live: data sources
 
 Signal Radar **does not log into LinkedIn or scrape with your account**. Doing that

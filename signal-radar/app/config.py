@@ -21,6 +21,9 @@ class Settings:
     enrichment_provider: str
     anthropic_api_key: str
     scoring_model: str
+    api_key: str
+    cors_origin_regex: str
+    seed_demo: bool
 
 
 def load_settings() -> Settings:
@@ -36,4 +39,10 @@ def load_settings() -> Settings:
         enrichment_provider=_env("ENRICHMENT_PROVIDER", "mock").lower(),
         anthropic_api_key=_env("ANTHROPIC_API_KEY"),
         scoring_model=_env("SCORING_MODEL", "claude-opus-5-5"),
+        api_key=_env("API_KEY"),
+        cors_origin_regex=_env(
+            "CORS_ORIGIN_REGEX",
+            r"https://([a-z0-9-]+\.)*(lovable\.app|lovableproject\.com|lovable\.dev)|http://localhost(:\d+)?",
+        ),
+        seed_demo=_env("SEED_DEMO", "true").lower() in ("1", "true", "yes"),
     )

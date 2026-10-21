@@ -4,12 +4,14 @@ import asyncio
 import csv
 import io
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -69,6 +71,23 @@ class RoutingIn(BaseModel):
     slack_webhook_url: str = ""
 
 
+def seed_demo(db: Database) -> None:
+    """First boot on demo data: two example monitors and an ICP, so the UI isn't empty."""
+    if db.one("SELECT 1 FROM monitors LIMIT 1"):
+        return
+    for name, kind, query, competitor in (
+        ("Outbound pain", "keyword", "outbound prospecting, cold email", 0),
+        ("Competitor: Acme", "company", "https://www.linkedin.com/company/acme-sales", 1),
+    ):
+        db.execute("INSERT INTO monitors (name, kind, query, is_competitor, created_at) VALUES (?,?,?,?,?)",
+                   (name, kind, query, competitor, now_iso()))
+    db.set_setting("icp", {**db.get_setting("icp"),
+                           "titles_include": ["founder", "ceo", "coo", "sales", "growth", "revenue",
+                                              "marketing", "partnerships", "business development"],
+                           "seniorities": ["c_level", "vp", "director", "manager"],
+                           "company_size_min": 10, "company_size_max": 1000})
+
+
 def create_app(settings: Settings | None = None, pipeline: Pipeline | None = None) -> FastAPI:
     settings = settings or load_settings()
     db = pipeline.db if pipeline else Database(settings.db_path)
@@ -90,6 +109,8 @@ def create_app(settings: Settings | None = None, pipeline: Pipeline | None = Non
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        if settings.seed_demo and settings.linkedin_provider == "mock":
+            seed_demo(db)
         task = asyncio.create_task(scheduler()) if settings.run_interval_minutes > 0 else None
         yield
         if task:
@@ -97,6 +118,24 @@ def create_app(settings: Settings | None = None, pipeline: Pipeline | None = Non
 
     app = FastAPI(title="Signal Radar", lifespan=lifespan)
     app.state.pipeline = pipeline
+
+    @app.middleware("http")
+    async def require_api_key(request: Request, call_next):
+        # Protects the API when API_KEY is set. Header for API clients, query param for CSV links.
+        if (settings.api_key and request.url.path.startswith("/api/")
+                and request.method != "OPTIONS"):
+            given = request.headers.get("x-api-key") or request.query_params.get("api_key") or ""
+            if not secrets.compare_digest(given, settings.api_key):
+                return JSONResponse({"detail": "Invalid or missing API key"}, status_code=401)
+        return await call_next(request)
+
+    # Added after the auth middleware so it wraps it: 401s still carry CORS headers.
+    app.add_middleware(CORSMiddleware, allow_origin_regex=settings.cors_origin_regex,
+                       allow_methods=["*"], allow_headers=["*"])
+
+    @app.get("/healthz", include_in_schema=False)
+    def healthz():
+        return {"ok": True}
 
     # --- meta -----------------------------------------------------------------
     @app.get("/api/status")

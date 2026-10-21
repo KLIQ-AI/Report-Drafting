@@ -52,9 +52,14 @@ def client(tmp_path, hooks):
     db = Database(str(tmp_path / "t.db"))
     pipeline = Pipeline(db, FakeProvider(), MockEnricher(), Scorer("", "unused"),
                         http=httpx.Client(transport=httpx.MockTransport(handler)))
-    settings = load_settings().__class__(**{**load_settings().__dict__, "run_interval_minutes": 0})
-    with TestClient(create_app(settings, pipeline)) as c:
+    with TestClient(create_app(make_settings(), pipeline)) as c:
         yield c
+
+
+def make_settings(**overrides):
+    base = load_settings()
+    return base.__class__(**{**base.__dict__, "run_interval_minutes": 0, "seed_demo": False,
+                             "api_key": "", **overrides})
 
 
 def test_seniority_inference():
@@ -128,3 +133,28 @@ def test_mock_provider_is_deterministic():
 def test_dashboard_served(client):
     assert "Signal Radar" in client.get("/").text
     assert client.get("/api/status").json()["scoring"] == "heuristic"
+
+
+def test_api_key_and_cors(tmp_path):
+    db = Database(str(tmp_path / "k.db"))
+    pipeline = Pipeline(db, FakeProvider(), MockEnricher(), Scorer("", "unused"))
+    with TestClient(create_app(make_settings(api_key="s3cret"), pipeline)) as c:
+        origin = {"Origin": "https://signal-radar.lovable.app"}
+        denied = c.get("/api/monitors", headers=origin)
+        assert denied.status_code == 401
+        assert denied.headers["access-control-allow-origin"] == origin["Origin"]
+        assert c.get("/api/monitors", headers={"X-API-Key": "s3cret"}).status_code == 200
+        assert c.get("/api/leads.csv?api_key=s3cret").status_code == 200
+        assert c.get("/healthz").status_code == 200
+        preflight = c.options("/api/monitors", headers={**origin, "Access-Control-Request-Method": "POST",
+                                                        "Access-Control-Request-Headers": "x-api-key"})
+        assert preflight.status_code == 200
+        evil = c.get("/api/monitors", headers={"Origin": "https://evil.example", "X-API-Key": "s3cret"})
+        assert "access-control-allow-origin" not in evil.headers
+
+
+def test_demo_seed(tmp_path):
+    db = Database(str(tmp_path / "s.db"))
+    pipeline = Pipeline(db, MockProvider(), MockEnricher(), Scorer("", "unused"))
+    with TestClient(create_app(make_settings(seed_demo=True, linkedin_provider="mock"), pipeline)) as c:
+        assert len(c.get("/api/monitors").json()) == 2
