@@ -1,6 +1,6 @@
 # Signal Radar
 
-A signal-based prospecting tool in the style of Jungler.ai. It watches public LinkedIn
+An internal signal-based prospecting tool in the style of Jungler.ai. It watches public LinkedIn
 conversations, captures **everyone who reacts to or comments on** relevant posts, ranks
 them by ICP fit and buying intent, and pushes qualified leads to your stack.
 
@@ -56,8 +56,10 @@ provider in `app/providers/`:
 - Your own: implement `search_posts`, `profile_posts`, `engagements` (see
   `providers/base.py`) against any licensed data vendor.
 
-Do a legal and ToS review of whichever data vendor you choose before selling this.
-That review matters more than any code in this repo.
+Even for internal use, pick a provider whose collection method you're comfortable with.
+The terms-of-service risk comes from how the data is gathered, not from who uses it.
+The leads are EU personal data, so keep GDPR basics in place: legitimate interest as the
+lawful basis, delete leads you don't contact, and honour opt-outs.
 
 ## Integrations
 
@@ -97,11 +99,10 @@ static/            dashboard (vanilla JS, no build step)
 tests/
 ```
 
-## Roadmap to parity and beyond
+## Next steps (internal use)
 
-- Licensed data provider in production, plus per-workspace usage credits and billing (Stripe)
-- Multi-user auth and workspaces
-- Native HeyReach / HubSpot / Salesforce pushes, and email verification (e.g. a waterfall across vendors)
-- Saved lead views, and Slack digests instead of per-lead pings
+- Push qualified leads straight into HubSpot as contacts, with the signal as a note
+- Swap the demo enricher for Lusha (or Apollo/Hunter) for verified emails
+- A daily Slack digest of the top leads instead of a ping per lead
 - Company-level rollup: several people at one account engaging means account-level intent
-- Batch scoring via the Message Batches API to halve LLM cost at volume
+- A retention job that purges leads nobody acted on after N days (GDPR)
