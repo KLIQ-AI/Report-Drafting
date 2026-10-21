@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signal Radar</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span> Signal Radar</div>
+    <nav>
+      <a href="#leads" data-view="leads">Leads</a>
+      <a href="#monitors" data-view="monitors">Monitors</a>
+      <a href="#icp" data-view="icp">ICP &amp; offer</a>
+      <a href="#integrations" data-view="integrations">Integrations</a>
+    </nav>
+    <div class="status" id="status"></div>
+  </aside>
+
+  <main>
+    <!-- LEADS -->
+    <section id="view-leads" class="view">
+      <header class="page-head">
+        <div>
+          <h1>Leads</h1>
+          <p class="muted">People engaging with the conversations you monitor, ranked by buying intent.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btn-run-all">Run all monitors</button>
+          <a class="btn ghost" id="btn-export" href="/api/leads.csv">Export CSV</a>
+        </div>
+      </header>
+      <div class="stats" id="stats"></div>
+      <div class="filters">
+        <input id="f-q" type="search" placeholder="Search name, title, company">
+        <select id="f-status">
+          <option value="">All statuses</option>
+          <option value="qualified" selected>Qualified</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="exported">Exported</option>
+          <option value="disqualified">Disqualified</option>
+        </select>
+        <select id="f-monitor"><option value="">All monitors</option></select>
+        <label class="range">Min intent <input id="f-intent" type="range" min="0" max="100" step="5" value="0"><output>0</output></label>
+      </div>
+      <div class="table-wrap">
+        <table class="leads">
+          <thead><tr><th>Person</th><th>Company</th><th>Intent</th><th>ICP fit</th><th>Latest signal</th><th></th></tr></thead>
+          <tbody id="lead-rows"></tbody>
+        </table>
+        <div class="empty" id="lead-empty" hidden>
+          No leads yet. Create a monitor, then hit <b>Run all monitors</b>.
+        </div>
+      </div>
+    </section>
+
+    <!-- MONITORS -->
+    <section id="view-monitors" class="view" hidden>
+      <header class="page-head">
+        <div>
+          <h1>Monitors</h1>
+          <p class="muted">Track keywords, or competitors' and thought leaders' profiles. We capture everyone who reacts or comments.</p>
+        </div>
+      </header>
+      <form class="card form-grid" id="monitor-form">
+        <label>Name <input name="name" required placeholder="Competitor: Acme"></label>
+        <label>Type
+          <select name="kind">
+            <option value="keyword">Keywords</option>
+            <option value="profile">Person profile</option>
+            <option value="company">Company page</option>
+          </select>
+        </label>
+        <label class="wide">Keywords or URL <input name="query" required placeholder="sales automation, outbound tool  |  https://www.linkedin.com/company/acme"></label>
+        <label class="wide">Exclude posts containing <input name="exclude_keywords" placeholder="hiring, job opening"></label>
+        <label class="check"><input type="checkbox" name="is_competitor"> This is a competitor</label>
+        <div class="wide right"><button class="btn" type="submit">Add monitor</button></div>
+      </form>
+      <div id="monitor-list" class="monitor-list"></div>
+    </section>
+
+    <!-- ICP -->
+    <section id="view-icp" class="view" hidden>
+      <header class="page-head">
+        <div>
+          <h1>ICP &amp; offer</h1>
+          <p class="muted">Who you sell to, and what you sell. Used for fit scoring and for the AI's intent judgement and openers.</p>
+        </div>
+      </header>
+      <form class="card form-grid" id="icp-form">
+        <h2 class="wide">Ideal customer profile</h2>
+        <label class="wide">Job titles to include <input name="titles_include" placeholder="founder, head of sales, vp sales, revops"></label>
+        <label class="wide">Job titles to exclude <input name="titles_exclude" placeholder="student, intern, recruiter"></label>
+        <fieldset class="wide seniority">
+          <legend>Seniority (empty = any)</legend>
+          <label><input type="checkbox" value="c_level"> C-level / Founder</label>
+          <label><input type="checkbox" value="vp"> VP</label>
+          <label><input type="checkbox" value="director"> Director / Head</label>
+          <label><input type="checkbox" value="manager"> Manager / Lead</label>
+          <label><input type="checkbox" value="ic"> Individual contributor</label>
+        </fieldset>
+        <label>Company size min <input name="company_size_min" type="number" min="0"></label>
+        <label>Company size max <input name="company_size_max" type="number" min="0"></label>
+        <label class="wide">Industries <input name="industries" placeholder="software, financial services"></label>
+        <label class="wide">Locations <input name="locations" placeholder="spain, germany, united kingdom"></label>
+        <h2 class="wide">Your offer</h2>
+        <label class="wide">Product <input name="product" placeholder="Signal-based prospecting platform"></label>
+        <label class="wide">Value proposition <textarea name="value_prop" rows="2" placeholder="Find buyers who are already talking about the problem you solve."></textarea></label>
+        <label class="wide">Competitors <input name="competitors" placeholder="Acme, Globex"></label>
+        <div class="wide right">
+          <button class="btn ghost" type="button" id="btn-rescore">Save &amp; re-score all leads</button>
+          <button class="btn" type="submit">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- INTEGRATIONS -->
+    <section id="view-integrations" class="view" hidden>
+      <header class="page-head">
+        <div>
+          <h1>Integrations</h1>
+          <p class="muted">Qualified leads are pushed automatically, once per destination.</p>
+        </div>
+      </header>
+      <form class="card form-grid" id="routing-form">
+        <h2 class="wide">Qualification thresholds</h2>
+        <label>Min ICP fit <input name="min_icp_fit" type="number" min="0" max="100"></label>
+        <label>Min intent <input name="min_intent" type="number" min="0" max="100"></label>
+        <h2 class="wide">Destinations</h2>
+        <label class="wide">Webhook URL <span class="hint">Clay, n8n, Make, Zapier, HeyReach, your CRM…</span>
+          <input name="webhook_url" type="url" placeholder="https://hooks.example.com/…"></label>
+        <label class="wide">Slack incoming webhook
+          <input name="slack_webhook_url" type="url" placeholder="https://hooks.slack.com/services/…"></label>
+        <div class="wide right">
+          <button class="btn ghost" type="button" id="btn-test">Send test</button>
+          <button class="btn" type="submit">Save</button>
+        </div>
+      </form>
+      <div class="card">
+        <h2>Webhook payload</h2>
+        <pre class="code">{
+  "event": "lead.qualified",
+  "lead": { "name", "headline", "company", "profile_url", "email",
+            "icp_fit", "intent_score", "buying_stage", "intent_reason",
+            "suggested_opener", ... },
+  "signals": [ { "kind", "comment_text", "post_url", "monitor" } ]
+}</pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Lead drawer -->
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" hidden></aside>
+<div class="toast" id="toast" hidden></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
