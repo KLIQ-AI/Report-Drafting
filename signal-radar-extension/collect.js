@@ -21,6 +21,23 @@ function collectLinkedInPage(doc, href) {
     }
   }
 
+  // LinkedIn's internal member id ("ACoAA…"), present in viewer links (miniProfileUrn query,
+  // /in/ACoAA… paths) and data attributes. Lets the app match captures to leads from monitors.
+  function memberId(el, rawHref) {
+    const hay = [rawHref || ""];
+    for (const node of [el, ...el.querySelectorAll("[data-urn],[data-entity-urn],[data-member-id],[href]")]) {
+      for (const attr of ["data-urn", "data-entity-urn", "data-member-id", "href"]) {
+        const v = node.getAttribute && node.getAttribute(attr);
+        if (v) hay.push(v);
+      }
+    }
+    for (const v of hay) {
+      const m = decodeURIComponent(v).match(/\b(ACoAA[A-Za-z0-9_-]{10,})\b/);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
   // Visible text lines of an element, in document order. LinkedIn renders many strings twice
   // (aria-hidden copy + visually-hidden copy), so skip hidden copies and collapse repeats.
   function lines(el) {
@@ -62,6 +79,7 @@ function collectLinkedInPage(doc, href) {
           name: name || null,
           headline: content[1] || null,
           profile_url: profileUrl,
+          member_id: memberId(li, anchor.getAttribute("href")),
           anonymous: false,
           anonymous_hint: null,
           viewed_text: viewed,
@@ -70,7 +88,7 @@ function collectLinkedInPage(doc, href) {
         const hint = content.slice(0, 2).join(" · ");
         if (seen.has(hint)) continue;
         seen.add(hint);
-        items.push({ name: null, headline: null, profile_url: null, anonymous: true, anonymous_hint: hint, viewed_text: viewed });
+        items.push({ name: null, headline: null, profile_url: null, member_id: null, anonymous: true, anonymous_hint: hint, viewed_text: viewed });
       }
     }
     return { type: "profile_views", page_url: href, items, page_text: pageText(main) };
@@ -93,7 +111,7 @@ function collectLinkedInPage(doc, href) {
     return {
       type: "profile",
       page_url: href,
-      items: [{ name, headline, profile_url: profileUrl, anonymous: false, anonymous_hint: null, viewed_text: null, location, about }],
+      items: [{ name, headline, profile_url: profileUrl, member_id: memberId(main, href), anonymous: false, anonymous_hint: null, viewed_text: null, location, about }],
       page_text: pageText(main).slice(0, 20000),
     };
   }

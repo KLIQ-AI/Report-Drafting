@@ -11,7 +11,7 @@ function run(html, url) {
 // Mimics LinkedIn's markup: aria-hidden + visually-hidden duplicates, buttons, a nested list.
 const viewer = (slug, name, headline, when) => `
   <li class="member-analytics-addon-entity-list__item">
-    <a href="/in/${slug}/?miniProfileUrn=abc" class="optional-action-target-wrapper">
+    <a href="/in/${slug}/?miniProfileUrn=urn%3Ali%3Afs_miniProfile%3AACoAAB${slug.length}xYz123456789" class="optional-action-target-wrapper">
       <span aria-hidden="true">${name}</span><span class="visually-hidden">${name}</span>
       <span class="dist"> · 2nd</span>
     </a>
@@ -46,6 +46,7 @@ test("profile viewers: people, anonymous viewers, dedupe and noise filtering", (
   assert.equal(people[0].name, "Ana Ruiz");
   assert.equal(people[0].headline, "Head of Trade Marketing at Danone");
   assert.equal(people[0].viewed_text, "Viewed 2h ago");
+  assert.equal(people[0].member_id, "ACoAAB13xYz123456789");
   assert.equal(anon.length, 2);
   assert.match(anon[0].anonymous_hint, /Someone at Unilever/);
   assert.match(anon[1].anonymous_hint, /Food & Beverage/);
