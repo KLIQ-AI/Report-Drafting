@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Signal Radar Capture – Settings</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="options">
+  <header><span class="dot"></span> Signal Radar Capture</header>
+  <p class="muted">Get the URL and a token from your Signal Radar app → Settings → Chrome extension.</p>
+  <form id="form">
+    <label>Signal Radar URL
+      <input id="appUrl" type="url" placeholder="https://kliq-signal-radar.lovable.app" required>
+    </label>
+    <label>Extension token
+      <input id="token" type="password" placeholder="Paste the token shown once in Settings" required>
+    </label>
+    <button class="btn" type="submit">Save</button>
+    <span id="saved" class="muted"></span>
+  </form>
+  <h3>What this extension does</h3>
+  <ul class="muted">
+    <li>Nothing runs until you click the extension icon on a LinkedIn tab.</li>
+    <li>It reads only what is already on your screen: no page visits, scrolling or clicks on your behalf.</li>
+    <li>It sends that list to your own Signal Radar workspace, and nowhere else.</li>
+  </ul>
+  <script src="options.js"></script>
+</body>
+</html>

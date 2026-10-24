@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Signal Radar Capture",
+  "version": "0.1.0",
+  "description": "Send the LinkedIn page you are looking at (your profile viewers, or one profile) to your Signal Radar workspace. Reads only when you click.",
+  "action": { "default_title": "Send to Signal Radar", "default_popup": "popup.html" },
+  "options_page": "options.html",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://*.lovable.app/*"],
+  "optional_host_permissions": ["https://*/*"]
+}
